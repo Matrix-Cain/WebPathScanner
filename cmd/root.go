@@ -8,7 +8,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use: "fofa",
+	Use: "pathmap",
 	Short: `
                    ___________                            
     ______________ __  /___  /________ _________ ________ 
