@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -77,7 +78,7 @@ func globalConfigRegister() {
 
 }
 
-func targetRegister() {
+func targetRegister() { // All the target will be regarded as legal target after this process
 	log.Infoln("[*] Initialize targets...")
 	if GlobalConfig.TargetType == "url" {
 		err := ParseTarget()
@@ -108,6 +109,9 @@ func targetRegister() {
 			log.Fatalf("Error while reading file: %s", err)
 		}
 	}
+	// now filter repeated target
+	targetFilter()
+
 	//check number of target(s) in utility.GlobalConfig.TargetList
 	if len(GlobalConfig.TargetList) == 0 {
 		log.Fatal("[!] No targets found.Please load targets with [-i|-iF]")
@@ -122,6 +126,7 @@ func engineRegister() {
 	}
 }
 
+//payloadRegister Handle Scan Mode to apply different processing to the given urls and payloads
 func payloadRegister() {
 	switch GlobalConfig.Mode {
 	case 0:
@@ -145,13 +150,38 @@ func payloadRegister() {
 			}
 		}
 	case 1:
-		{
-			// mode 1 as fuzz mode
+		{ // mode 1 as fuzz mode
+			flag := Vipe.Get("FuzzDictConfig.flag")
+			if flag.(string) != "" {
+				fuzzModeCheck(flag.(string))
+			} else {
+				log.Fatal("[!]Fuzz flag not present in config")
+			}
+
+			file, err := os.Open(viper.Get("FuzzDictConfig.path").(string))
+			defer file.Close()
+			if err != nil {
+				log.Fatalf("Error when opening file: %s", err)
+			}
+			fileScanner := bufio.NewScanner(file)
+			// read line by line
+			for fileScanner.Scan() {
+				if fileScanner.Text() != "" {
+					GlobalConfig.PayloadList = append(GlobalConfig.PayloadList, fileScanner.Text())
+				}
+			}
+			// handle first encountered error while reading
+			if err := fileScanner.Err(); err != nil {
+				log.Fatalf("Error while reading file: %s", err)
+			}
+
 		}
 	}
 }
 
 func progressRegister() {
+	msg := fmt.Sprintf("[!]Total %v Targets with %v Payloads in total", len(GlobalConfig.TargetList), len(GlobalConfig.PayloadList))
+	log.Infoln(msg)
 	ProgressBar = progressbar.NewOptions(len(GlobalConfig.TargetList)*len(GlobalConfig.PayloadList),
 		progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
 		progressbar.OptionEnableColorCodes(true),
@@ -171,4 +201,35 @@ func progressRegister() {
 			BarEnd:        "",
 		}))
 
+}
+
+//TargetFilter filter the same target And do
+func targetFilter() {
+	tmp := make([]interface{}, len(GlobalConfig.TargetList))
+	for i := range GlobalConfig.TargetList {
+		tmp[i] = GlobalConfig.TargetList[i]
+	}
+	setTarget := mapset.NewSetFromSlice(tmp).ToSlice()
+	filteredTargetList := make([]string, len(setTarget))
+	for i := range setTarget {
+		filteredTargetList[i] = setTarget[i].(string)
+	}
+	GlobalConfig.TargetList = filteredTargetList
+}
+
+func fuzzModeCheck(flag string) {
+	illegal := false
+	var illegalList []string
+	for _, v := range GlobalConfig.TargetList {
+		if !strings.Contains(v, flag) {
+			illegal = true
+			illegalList = append(illegalList, v)
+		}
+	}
+	if illegal {
+		for _, v := range illegalList {
+			log.Warnln(v)
+		}
+		log.Fatal("[!]Illegal Input that not correspond to the fuzz flag")
+	}
 }

@@ -26,11 +26,11 @@ func ParseTarget() error {
 		log.Errorln("Invalid Target")
 		return err
 	}
-	//# 判断不带http
+	// if input with http Scheme
 	if parsedUrl.Scheme != "http" {
-		//# 判断IP/Mask格式
+		//# Judge IP/Mask type
 		if ipv4withmaskRe.MatchString(parsedUrl.Path) {
-			//# 是子网还是网址 e.g. 192.168.1.1/24 or http://192.168.1.1/24
+			//# Subnet or Internet address e.g. 192.168.1.1/24 or http://192.168.1.1/24
 			log.Warnf("[*] %s is IP/Mask[Y] or URL(http://)[n]? [Y/n]", GlobalConfig.Target)
 			reader := bufio.NewReader(os.Stdin)
 			text, _ := reader.ReadString('\n')
@@ -45,21 +45,25 @@ func ParseTarget() error {
 					return err
 				}
 				//https://stackoverflow.com/questions/16248241/concatenate-two-slices-in-go
-				GlobalConfig.TargetList = append(GlobalConfig.TargetList, slice...)
+				GlobalConfig.TargetList = append(GlobalConfig.TargetList, slice[1:len(slice)-1]...) // Since 192.168.1.0 and 192.168.1.255 are preserved address we stripe them out
 
 			}
 
-		} else if ipv4rangeRe.MatchString(GlobalConfig.Target) { //判断网络范围格式 e.g. 192.168.1.1-192.168.1.100
+		} else if ipv4rangeRe.MatchString(GlobalConfig.Target) { //Judge input address type e.g. 192.168.1.1-192.168.1.100
 
 			cidr, err := iPv4RangeToCIDRRange(strings.Split(GlobalConfig.Target, "-")[0], strings.Split(GlobalConfig.Target, "-")[1])
 			if err != nil {
 				return err
 			}
-			slice, err := cidrToIPSlice(cidr[0])
-			if err != nil {
-				return err
+			var slice []string
+			for i := range cidr {
+				tmp, err := cidrToIPSlice(cidr[i])
+				if err != nil {
+					return err
+				}
+				slice = append(slice, tmp...)
 			}
-			GlobalConfig.TargetList = append(GlobalConfig.TargetList, slice...)
+			GlobalConfig.TargetList = append(GlobalConfig.TargetList, slice...) // if user input ip range it should be a closed range pair like [192.168.1.1,192.168.1.4]
 
 		} else { //# 按照链接处理
 			GlobalConfig.TargetList = append(GlobalConfig.TargetList, GlobalConfig.Target)
@@ -170,7 +174,7 @@ func cidrToIPSlice(cidrString string) ([]string, error) {
 		// convert back to net.IP
 		ip := make(net.IP, 4)
 		binary.BigEndian.PutUint32(ip, i)
-		GlobalConfig.TargetList = append(ipSlice, ip.String())
+		ipSlice = append(ipSlice, ip.String())
 	}
 	return ipSlice, nil
 }

@@ -33,6 +33,7 @@ var scanFileCmd = &cobra.Command{
 	Args:  cobra.RangeArgs(1, 1),
 	Run: func(cmd *cobra.Command, args []string) {
 		core.GlobalConfig.TargetType = "file"
+		core.GlobalConfig.Target = args[0]
 		log.Infoln("Scanning targets from file..")
 		controller.PipeLine()
 		//fileName := args[0]

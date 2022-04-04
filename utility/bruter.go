@@ -2,7 +2,6 @@ package utility
 
 import (
 	"WebPathScanner/core"
-	"bufio"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -11,7 +10,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 )
@@ -37,11 +35,14 @@ func Bruter(urlInput string) {
 		urlInput += "/"
 	}
 	// Print Current Target
-	log.Infof("[+] Current target: %s", urlInput)
-
+	core.Mutex.Lock()
+	log.Infof("[+] Current target: %s", strings.TrimRight(urlInput, "/"))
+	core.Mutex.Unlock()
 	//doing prepend work
 	if core.GlobalConfig.AutoCheck404 {
+		core.Mutex.Lock()
 		log.Infoln("[*] Launching auto check 404")
+		core.Mutex.Unlock()
 		i := Inspector{target: urlInput}
 		result, notfoundType := i.CheckThis()
 		if notfoundType == Test404Md5 || notfoundType == Test404Ok {
@@ -53,7 +54,8 @@ func Bruter(urlInput string) {
 }
 
 func Worker(urlWithSlash string, client *http.Client, payloadIndex int) {
-	req, _ := http.NewRequest("GET", urlWithSlash+core.GlobalConfig.PayloadList[payloadIndex], nil)
+	craftedUrl := genTarget(urlWithSlash, payloadIndex)
+	req, _ := http.NewRequest("GET", craftedUrl, nil)
 	if core.Vipe.Get("General.UserAgent").(string) != "" {
 		req.Header.Set("User-Agent", core.Vipe.Get("General.UserAgent").(string))
 	} else {
@@ -79,25 +81,18 @@ func Worker(urlWithSlash string, client *http.Client, payloadIndex int) {
 
 }
 
-func loadDict(filePath string) []string {
-	var payloadList []string
-	file, err := os.Open(filePath)
-	defer file.Close()
-	if err != nil {
-		log.Fatalf("Error when opening file: %s", err)
-	}
-	fileScanner := bufio.NewScanner(file)
-	// read line by line
-	for fileScanner.Scan() {
-		if fileScanner.Text() != "" {
-			payloadList = append(payloadList, strings.Trim(fileScanner.Text(), "\t"))
+func genTarget(urlWithSlash string, payloadIndex int) string { // To make future feature ez to add since final payload will be generated here
+	switch core.GlobalConfig.Mode {
+	case 0:
+		{
+			return urlWithSlash + core.GlobalConfig.PayloadList[payloadIndex]
+		}
+	case 1:
+		{
+			return strings.ReplaceAll(strings.TrimRight(urlWithSlash, "/"), core.Vipe.Get("FuzzDictConfig.flag").(string), core.GlobalConfig.PayloadList[payloadIndex])
 		}
 	}
-	// handle first encountered error while reading
-	if err := fileScanner.Err(); err != nil {
-		log.Fatalf("Error while reading file: %s", err)
-	}
-	return payloadList
+	return ""
 }
 
 func responseHandler(resp *http.Response, req *http.Request) string {

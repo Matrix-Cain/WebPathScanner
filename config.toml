@@ -9,4 +9,5 @@ ResponseStatusCode = ["200"]
 path = "./data/VintageDict/dict_mode_dict.txt"
 
 [FuzzDictConfig]
-path = "./data/FuzzDict/"
+path = "./data/FuzzDict/fuzz_mode_ext.txt"
+flag = "{ext}"
