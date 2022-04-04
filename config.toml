@@ -1,0 +1,12 @@
+[General]
+RequestLimit = 100
+DelayTime = 0
+UserAgent =""
+AutoCheck404 = true
+ResponseStatusCode = ["200"]
+
+[VintageDictConfig]
+path = "./data/VintageDict/dict_mode_dict.txt"
+
+[FuzzDictConfig]
+path = "./data/FuzzDict/"

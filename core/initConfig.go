@@ -1,0 +1,174 @@
+package core
+
+import (
+	"bufio"
+	"bytes"
+	"fmt"
+	"github.com/deckarep/golang-set"
+	"github.com/k0kubun/go-ansi"
+	"github.com/schollz/progressbar/v3"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
+	"io/ioutil"
+	"os"
+	"sync"
+)
+
+type globalConfig struct {
+	Target         string     // required
+	ConfPath       string     //optional
+	Proxy          string     //optional
+	Save           bool       //optional default false
+	FileName       string     //optional
+	AutoCheck404   bool       //optional default true
+	AutoMd5        mapset.Set //not required
+	ConfigFilePath string     //optional
+	RandomSleep    int        //optional default 0
+	Mode           int        //default dict mode
+	ThreadNum      int        //default 10
+	TargetList     []string   //auto filled
+	PayloadList    []string   //auto filled
+	TargetType     string     //auto filled
+}
+
+var GlobalConfig = globalConfig{}
+var Vipe *viper.Viper
+var ProgressBar *progressbar.ProgressBar
+var Mutex = &sync.Mutex{}
+
+func LoadAllConfig() {
+	loadConfigFromFile()
+	globalConfigRegister()
+	engineRegister()
+	targetRegister()
+	payloadRegister()
+	progressRegister()
+}
+
+func loadConfigFromFile() {
+
+	var confPath string
+	if GlobalConfig.ConfPath != "" {
+		confPath = GlobalConfig.ConfPath
+	} else {
+		confPath = "./config.toml"
+	}
+	content, err := ioutil.ReadFile(confPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	Vipe = viper.GetViper()
+	Vipe.SetConfigType("toml")
+	err = Vipe.ReadConfig(bytes.NewBuffer(content))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+func globalConfigRegister() {
+	GlobalConfig.AutoMd5 = mapset.NewSet()
+	if Vipe.IsSet("General.AutoCheck404") {
+		GlobalConfig.AutoCheck404 = Vipe.Get("General.AutoCheck404").(bool)
+	} else {
+		GlobalConfig.AutoCheck404 = true
+	}
+
+}
+
+func targetRegister() {
+	log.Infoln("[*] Initialize targets...")
+	if GlobalConfig.TargetType == "url" {
+		err := ParseTarget()
+		if err != nil {
+			log.Errorln(err) // Output Error Details
+			log.Fatal("Invalid input in [-i], Example: -i [http://]target.com or 192.168.1.1[/24] or 192.168.1.1-192.168.1.100")
+		}
+	} else {
+		file, err := os.Open(GlobalConfig.Target)
+		defer file.Close()
+		if err != nil {
+			log.Fatalf("Error when opening file: %s", err)
+		}
+		fileScanner := bufio.NewScanner(file)
+		// read line by line
+		for fileScanner.Scan() {
+			if fileScanner.Text() != "" {
+				GlobalConfig.Target = fileScanner.Text()
+				err := ParseTarget()
+				if err != nil {
+					log.Errorln(err) // Output Error Details
+					log.Fatal("Invalid input in [-i], Example: -i [http://]target.com or 192.168.1.1[/24] or 192.168.1.1-192.168.1.100")
+				}
+			}
+		}
+		// handle first encountered error while reading
+		if err := fileScanner.Err(); err != nil {
+			log.Fatalf("Error while reading file: %s", err)
+		}
+	}
+	//check number of target(s) in utility.GlobalConfig.TargetList
+	if len(GlobalConfig.TargetList) == 0 {
+		log.Fatal("[!] No targets found.Please load targets with [-i|-iF]")
+	}
+	log.Infoln("[√] Targets Initialized")
+}
+
+func engineRegister() {
+	if GlobalConfig.ThreadNum > 200 || GlobalConfig.ThreadNum < 1 {
+		log.Warnln("[*] Invalid input in [-t](range: 1 to 200), has changed to default(10)")
+		GlobalConfig.ThreadNum = 10
+	}
+}
+
+func payloadRegister() {
+	switch GlobalConfig.Mode {
+	case 0:
+		{ // default mode 0 as dictionary iteration
+
+			file, err := os.Open(viper.Get("VintageDictConfig.path").(string))
+			defer file.Close()
+			if err != nil {
+				log.Fatalf("Error when opening file: %s", err)
+			}
+			fileScanner := bufio.NewScanner(file)
+			// read line by line
+			for fileScanner.Scan() {
+				if fileScanner.Text() != "" {
+					GlobalConfig.PayloadList = append(GlobalConfig.PayloadList, fileScanner.Text())
+				}
+			}
+			// handle first encountered error while reading
+			if err := fileScanner.Err(); err != nil {
+				log.Fatalf("Error while reading file: %s", err)
+			}
+		}
+	case 1:
+		{
+			// mode 1 as fuzz mode
+		}
+	}
+}
+
+func progressRegister() {
+	ProgressBar = progressbar.NewOptions(len(GlobalConfig.TargetList)*len(GlobalConfig.PayloadList),
+		progressbar.OptionSetWriter(ansi.NewAnsiStdout()),
+		progressbar.OptionEnableColorCodes(true),
+		progressbar.OptionShowBytes(true),
+		progressbar.OptionSetWidth(15),
+		progressbar.OptionSetDescription("[cyan]Progress🚀[reset] Scanning..."),
+		progressbar.OptionOnCompletion(func() {
+			fmt.Println()
+			log.Infoln("[√]All Task Done")
+		}),
+		//progressbar.OptionShowIts(), //this option will cause flicker
+		progressbar.OptionSetTheme(progressbar.Theme{
+			Saucer:        "[green]━━[reset]",
+			SaucerHead:    "[green]━━[reset]",
+			SaucerPadding: " ",
+			BarStart:      "",
+			BarEnd:        "",
+		}))
+
+}
