@@ -54,7 +54,7 @@ func Bruter(urlInput string) {
 }
 
 func Worker(urlWithSlash string, client *http.Client, payloadIndex int) {
-	craftedUrl := genTarget(urlWithSlash, payloadIndex)
+	craftedUrl := genTarget(urlWithSlash, payloadIndex) // Concat url with payload
 	req, _ := http.NewRequest("GET", craftedUrl, nil)
 	if core.Vipe.Get("General.UserAgent").(string) != "" {
 		req.Header.Set("User-Agent", core.Vipe.Get("General.UserAgent").(string))

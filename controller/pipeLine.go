@@ -7,8 +7,8 @@ import (
 )
 
 func PipeLine() {
-	core.LoadAllConfig()
-	utility.Run()
+	core.LoadAllConfig() // Doing pre-processing staff for later scanning
+	utility.Run()        // Running scan task
 	// do post-processing staff
 	log.Infoln("[*]Doing Post-Processing staff")
 }

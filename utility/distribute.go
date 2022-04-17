@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Run Assign url to pool
+// Run map every url from GlobalConfig.TargetList to pool
 func Run() {
 	log.Infoln("[+] Coroutine Initializing")
 	defer ants.Release()
@@ -30,7 +30,7 @@ func Run() {
 	wg.Wait()
 }
 
-//SubRun Assign concrete payload for url
+//SubRun Map payloads from GlobalConfig.PayloadList to the url
 func SubRun(urlWithSlash string) {
 	defer ants.Release()
 	client := GenerateHTTPClient()

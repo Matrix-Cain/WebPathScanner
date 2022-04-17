@@ -38,12 +38,12 @@ var ProgressBar *progressbar.ProgressBar
 var Mutex = &sync.Mutex{}
 
 func LoadAllConfig() {
-	loadConfigFromFile()
+	loadConfigFromFile() // Load config from persistent config.toml
 	globalConfigRegister()
-	engineRegister()
-	targetRegister()
-	payloadRegister()
-	progressRegister()
+	engineRegister()   // Set pool size for multi-threading
+	targetRegister()   // Handle target param from input
+	payloadRegister()  // Load payload
+	progressRegister() // Determine the tasks number using [target(s)Number * payloadsNumber]
 }
 
 func loadConfigFromFile() {
