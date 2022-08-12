@@ -75,6 +75,10 @@ func Worker(urlWithSlash string, client *http.Client, payloadIndex int) {
 	if msg != "" {
 		_ = core.ProgressBar.Clear()
 		log.Infoln(msg)
+		if core.GlobalConfig.Save {
+			reqUrl, _ := url.Parse(urlWithSlash)
+			core.GlobalConfig.Result[reqUrl.Host] = append(core.GlobalConfig.Result[reqUrl.Host], msg)
+		}
 	}
 	core.ProgressBar.Add(1)
 	core.Mutex.Unlock()

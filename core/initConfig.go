@@ -16,20 +16,21 @@ import (
 )
 
 type globalConfig struct {
-	Target         string     // required
-	ConfPath       string     //optional
-	Proxy          string     //optional
-	Save           bool       //optional default false
-	FileName       string     //optional
-	AutoCheck404   bool       //optional default true
-	AutoMd5        mapset.Set //not required
-	ConfigFilePath string     //optional
-	RandomSleep    int        //optional default 0
-	Mode           int        //default dict mode
-	ThreadNum      int        //default 10
-	TargetList     []string   //auto filled
-	PayloadList    []string   //auto filled
-	TargetType     string     //auto filled
+	Target         string              // required
+	ConfPath       string              //optional
+	Proxy          string              //optional
+	Save           bool                //optional default false
+	FileName       string              //optional
+	AutoCheck404   bool                //optional default true
+	AutoMd5        mapset.Set          //not required
+	ConfigFilePath string              //optional
+	RandomSleep    int                 //optional default 0
+	Mode           int                 //default dict mode
+	ThreadNum      int                 //default 10
+	TargetList     []string            //auto filled
+	PayloadList    []string            //auto filled
+	TargetType     string              //auto filled
+	Result         map[string][]string //save scanning result if Save enabled in flag
 }
 
 var GlobalConfig = globalConfig{}
@@ -75,7 +76,7 @@ func globalConfigRegister() {
 	} else {
 		GlobalConfig.AutoCheck404 = true
 	}
-
+	GlobalConfig.Result = make(map[string][]string)
 }
 
 func targetRegister() { // All the target will be regarded as legal target after this process
@@ -126,7 +127,7 @@ func engineRegister() {
 	}
 }
 
-//payloadRegister Handle Scan Mode to apply different processing to the given urls and payloads
+// payloadRegister Handle Scan Mode to apply different processing to the given urls and payloads
 func payloadRegister() {
 	switch GlobalConfig.Mode {
 	case 0:
@@ -203,7 +204,7 @@ func progressRegister() {
 
 }
 
-//TargetFilter filter the same target And do
+// TargetFilter filter the same target And do
 func targetFilter() {
 	tmp := make([]interface{}, len(GlobalConfig.TargetList))
 	for i := range GlobalConfig.TargetList {

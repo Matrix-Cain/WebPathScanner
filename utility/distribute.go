@@ -30,7 +30,7 @@ func Run() {
 	wg.Wait()
 }
 
-//SubRun Map payloads from GlobalConfig.PayloadList to the url
+// SubRun Map payloads from GlobalConfig.PayloadList to the url
 func SubRun(urlWithSlash string) {
 	defer ants.Release()
 	client := GenerateHTTPClient()
