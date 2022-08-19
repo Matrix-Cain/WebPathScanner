@@ -11,5 +11,7 @@ func PipeLine() {
 	utility.Run()        // Running scan task
 	// do post-processing staff
 	log.Infoln("[*]Doing Post-Processing staff")
-	utility.SaveToFile()
+	if core.GlobalConfig.Save {
+		utility.SaveToFile()
+	}
 }
