@@ -6,8 +6,8 @@ AutoCheck404 = true
 ResponseStatusCode = ["200"]
 
 [VintageDictConfig]
-path = "./data/VintageDict/dict_mode_dict_TEST.txt"
-#path = "./data/VintageDict/dict_mode_dict.txt"
+#path = "./data/VintageDict/dict_mode_dict_TEST.txt"
+path = "./data/VintageDict/dict_mode_dict.txt"
 
 [FuzzDictConfig]
 path = "./data/FuzzDict/fuzz_mode_ext.txt"
