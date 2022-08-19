@@ -60,10 +60,9 @@ http://target3.com
 + Auto Handle fake 404
 + Random Sleep support
 + Custom User-Agent supported
++ Save scanning results to file
 
 ## 🚧TODO
-
-+ Save scanning results to file
 
 Since this is a small tool I write just for practice Golang. There is surely many bugs to fix. And the scanner's functions are not rich. So any suggestions and bug reports are more than welcome. Fell free to PR if you have some good idea.
 
